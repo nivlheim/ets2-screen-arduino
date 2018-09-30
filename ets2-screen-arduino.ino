@@ -3,7 +3,17 @@
 #include <Adafruit_PCD8544.h>
 #include <ArduinoJson.h>
 
-// Software SPI (slower updates, more flexible pin options):
+struct fuelDataStruct {
+  int current;
+  int max;
+  int range;
+};
+
+struct telemetryDataStruct {
+  bool engineEnabled;
+  fuelDataStruct fuel;
+};
+
 // pin 3 - Serial clock out (SCLK)
 // pin 4 - Serial data out (DIN)
 // pin 5 - Data/Command select (D/C)
@@ -12,8 +22,7 @@
 Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
 
 #define PROGRESSBAR_HEIGHT 5
-
-int fuelParams[] = {0,0};
+telemetryDataStruct telemetryData;
 
 void setup()   {
   pinMode(13, OUTPUT);
@@ -28,21 +37,27 @@ void setup()   {
   display.setTextColor(BLACK);
 }
 
-
 void loop() {
-  digitalWrite(13, HIGH);
   display.clearDisplay();
-  drawFuelScreen();
+  if(telemetryData.engineEnabled) {
+    digitalWrite(13, HIGH);
+    drawFuelScreen();
+  } else {
+    digitalWrite(13, LOW);
+  }
+  
   display.display();
 }
 
 void drawFuelScreen(){
+  const int currentFuel = telemetryData.fuel.current;
+  const int maxFuel = telemetryData.fuel.max;
   drawScreenTitle("Paliwo");
-  display.print(fuelParams[0], DEC);
+  display.print(currentFuel, DEC);
   display.print("/");
-  display.print(fuelParams[1], DEC);
+  display.print(maxFuel, DEC);
   display.print(" litrow");
-  drawProgressbar(20, fuelParams[0], fuelParams[1]);
+  drawProgressbar(20, currentFuel, maxFuel);
 }
 
 void drawScreenTitle(String title){
@@ -67,7 +82,9 @@ void serialEvent(){
   String inputMessage = Serial.readString();
   JsonObject& root = jsonBuffer.parseObject(inputMessage);
 
-  fuelParams[0] = root["fuel"]["current"];
-  fuelParams[1] = root["fuel"]["max"];
+  telemetryData.engineEnabled = root["engine"]["enabled"];
+
+  telemetryData.fuel.current = root["fuel"]["current"];
+  telemetryData.fuel.max = root["fuel"]["max"];
 }
 
