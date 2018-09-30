@@ -3,16 +3,7 @@
 #include <Adafruit_PCD8544.h>
 #include <ArduinoJson.h>
 
-struct fuelDataStruct {
-  int current;
-  int max;
-  int range;
-};
-
-struct telemetryDataStruct {
-  bool engineEnabled;
-  fuelDataStruct fuel;
-};
+#include "lib/telemetry.h"
 
 // pin 3 - Serial clock out (SCLK)
 // pin 4 - Serial data out (DIN)
@@ -20,13 +11,10 @@ struct telemetryDataStruct {
 // pin 7 - LCD chip select (CS)
 // pin 6 - LCD reset (RST)
 Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
-
-#define PROGRESSBAR_HEIGHT 5
 telemetryDataStruct telemetryData;
 
 void setup()   {
   pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
   Serial.begin(9600);
   Serial.setTimeout(100);
   
@@ -70,6 +58,7 @@ void drawScreenTitle(String title){
 }
 
 void drawProgressbar(int yOffset, int value, int rangeMax) {
+  const int PROGRESSBAR_HEIGHT = 5;
   int realValue = map(value, 0, rangeMax, 0, 82);
   display.drawRect(0, yOffset, 84, PROGRESSBAR_HEIGHT, BLACK);
   if(realValue > 0) {
@@ -81,10 +70,6 @@ void serialEvent(){
   StaticJsonBuffer<200> jsonBuffer;
   String inputMessage = Serial.readString();
   JsonObject& root = jsonBuffer.parseObject(inputMessage);
-
-  telemetryData.engineEnabled = root["engine"]["enabled"];
-
-  telemetryData.fuel.current = root["fuel"]["current"];
-  telemetryData.fuel.max = root["fuel"]["max"];
+  saveTelemetryData(telemetryData, root);
 }
 
