@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
+#include <ArduinoJson.h>
 
 // Software SPI (slower updates, more flexible pin options):
 // pin 3 - Serial clock out (SCLK)
@@ -12,18 +13,16 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
 
 #define PROGRESSBAR_HEIGHT 5
 
-String lastMessage = "1,1";
-
 int fuelParams[] = {0,0};
-int f1 = 0;
-int f2 = 0;
 
 void setup()   {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
   Serial.begin(9600);
   Serial.setTimeout(100);
   
   display.begin();
-  display.setContrast(60);
+  display.setContrast(50);
   display.setRotation(2);
   display.setTextSize(1);
   display.setTextColor(BLACK);
@@ -31,6 +30,7 @@ void setup()   {
 
 
 void loop() {
+  digitalWrite(13, HIGH);
   display.clearDisplay();
   drawFuelScreen();
   display.display();
@@ -63,9 +63,11 @@ void drawProgressbar(int yOffset, int value, int rangeMax) {
 }
 
 void serialEvent(){
-  lastMessage = Serial.readString();
-  int delimeterIndex = lastMessage.indexOf(',');
-  fuelParams[0] = lastMessage.substring(0,delimeterIndex).toInt();
-  fuelParams[1] = lastMessage.substring(delimeterIndex + 1).toInt();
+  StaticJsonBuffer<200> jsonBuffer;
+  String inputMessage = Serial.readString();
+  JsonObject& root = jsonBuffer.parseObject(inputMessage);
+
+  fuelParams[0] = root["fuel"]["current"];
+  fuelParams[1] = root["fuel"]["max"];
 }
 
