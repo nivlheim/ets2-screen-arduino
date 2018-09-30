@@ -29,7 +29,7 @@ void setup()   {
 void loop() {
   display.clearDisplay();
   
-  if(telemetryData.engineEnabled) {
+  if(telemetryData.engine.enabled) {
     digitalWrite(13, HIGH);
     drawFuelScreen(display, telemetryData);
   } else {
@@ -40,7 +40,7 @@ void loop() {
 }
 
 void serialEvent(){
-  StaticJsonBuffer<200> jsonBuffer;
+  StaticJsonBuffer<512> jsonBuffer;
   String inputMessage = Serial.readString();
   JsonObject& root = jsonBuffer.parseObject(inputMessage);
   saveTelemetryData(telemetryData, root);
